@@ -1,0 +1,153 @@
+!pip install pyspark
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("College Student Management") \
+    .getOrCreate()
+df = spark.read.csv("college_student_management_data.csv", header=True, inferSchema=True)
+df.printSchema()           # Check column types
+df.show(5)                 # Display first 5 rows
+df.columns                 # Column names
+df.describe().show()       # Summary statistics
+df.count()                 # Row count
+df.dtypes                  # Data types
+df = df.dropDuplicates()
+from pyspark.sql.functions import count
+
+df.groupBy(df.columns).count().filter("count > 1").show()
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+-----+
+|student_id|age|gender|major|GPA|course_load|avg_course_grade|attendance_rate|enrollment_status|lms_logins_past_month|avg_session_duration_minutes|assignment_submission_rate|forum_participation_count|video_completion_rate|risk_level|count|
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+-----+
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+-----+
+df = df.withColumnRenamed("Student Name", "Name")
+df.columns
+['student_id',
+ 'Age',
+ 'gender',
+ 'major',
+ 'GPA',
+ 'course_load',
+ 'avg_course_grade',
+ 'attendance_rate',
+ 'enrollment_status',
+ 'lms_logins_past_month',
+ 'avg_session_duration_minutes',
+ 'assignment_submission_rate',
+ 'forum_participation_count',
+ 'video_completion_rate',
+ 'risk_level']
+from pyspark.sql.functions import col
+
+# Cast 'Age' to Integer
+df = df.withColumn("Age", col("Age").cast("Integer"))
+
+# Cast 'avg_course_grade' to Float
+df = df.withColumn("avg_course_grade", col("avg_course_grade").cast("Float"))
+# View column names and types
+df.printSchema()
+
+# View first 5 rows
+df.show(5)
+
+# View total row count
+print("Total Rows:", df.count())
+
+root
+ |-- student_id: string (nullable = false)
+ |-- Age: integer (nullable = true)
+ |-- gender: string (nullable = false)
+ |-- major: string (nullable = false)
+ |-- GPA: double (nullable = true)
+ |-- course_load: integer (nullable = true)
+ |-- avg_course_grade: float (nullable = true)
+ |-- attendance_rate: double (nullable = true)
+ |-- enrollment_status: string (nullable = false)
+ |-- lms_logins_past_month: integer (nullable = true)
+ |-- avg_session_duration_minutes: integer (nullable = true)
+ |-- assignment_submission_rate: double (nullable = true)
+ |-- forum_participation_count: integer (nullable = true)
+ |-- video_completion_rate: double (nullable = true)
+ |-- risk_level: string (nullable = false)
+
++----------+---+------+----------------+----+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|student_id|Age|gender|           major| GPA|course_load|avg_course_grade|attendance_rate|enrollment_status|lms_logins_past_month|avg_session_duration_minutes|assignment_submission_rate|forum_participation_count|video_completion_rate|risk_level|
++----------+---+------+----------------+----+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|      S176| 23|  Male|        Business|2.41|          6|            82.3|           0.92|        Graduated|                    8|                          83|                      0.51|                        9|                 0.75|      High|
+|      S314| 24| Other|Computer Science|2.51|          4|            89.5|           0.65|            Leave|                    4|                          64|                      0.85|                       17|                 0.53|      High|
+|      S495| 22|Female|     Engineering|2.14|          3|            73.7|           0.68|           Active|                   12|                          25|                      0.95|                        6|                 0.65|      High|
+|      S513| 24| Other|        Business| 2.9|          5|            74.9|           0.92|        Graduated|                   19|                          35|                      0.55|                       13|                 0.56|    Medium|
+|      S603| 21| Other|            Arts|2.56|          5|            99.5|           0.87|           Active|                   37|                          33|                      0.71|                       18|                  0.5|    Medium|
++----------+---+------+----------------+----+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+only showing top 5 rows
+
+Total Rows: 1545
+from pyspark.sql.functions import col, when, count
+
+# 1. Check for NULLs in each column
+df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns]).show()
+
+# 2. Check for duplicate rows
+print("Total Rows:", df.count())
+print("Distinct Rows:", df.distinct().count())
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|student_id|Age|gender|major|GPA|course_load|avg_course_grade|attendance_rate|enrollment_status|lms_logins_past_month|avg_session_duration_minutes|assignment_submission_rate|forum_participation_count|video_completion_rate|risk_level|
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|         0|  0|     0|    0|  0|          0|               0|              0|                0|                    0|                           0|                         0|                        0|                    0|         0|
++----------+---+------+-----+---+-----------+----------------+---------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+
+Total Rows: 1545
+Distinct Rows: 1545
+df.describe().show()
++-------+----------+------------------+------+-----------+------------------+------------------+-----------------+-------------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|summary|student_id|               Age|gender|      major|               GPA|       course_load| avg_course_grade|    attendance_rate|enrollment_status|lms_logins_past_month|avg_session_duration_minutes|assignment_submission_rate|forum_participation_count|video_completion_rate|risk_level|
++-------+----------+------------------+------+-----------+------------------+------------------+-----------------+-------------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+|  count|      1545|              1545|  1545|       1545|              1545|              1545|             1545|               1545|             1545|                 1545|                        1545|                      1545|                     1545|                 1545|      1545|
+|   mean|      NULL| 21.48284789644013|  NULL|       NULL|3.0123236245954677| 4.487378640776699|79.91488672398441| 0.7944595469255684|             NULL|   19.344983818770228|           49.36504854368932|        0.7522006472491918|        9.642718446601942|   0.7509579288025893|      NULL|
+| stddev|      NULL|2.3002865710826996|  NULL|       NULL| 0.571394620466219|1.0981625856128319|11.52862510021913|0.11514176248178233|             NULL|   11.515002706106033|          23.195191577556187|       0.14435069423817087|        5.752493297150305|   0.1448395178228942|      NULL|
+|    min|      S001|                18|Female|       Arts|               2.0|                 3|             60.0|                0.6|           Active|                    0|                          10|                       0.5|                        0|                  0.5|      High|
+|    max|      S999|                25| Other|Engineering|               4.0|                 6|            100.0|                1.0|            Leave|                   39|                          89|                       1.0|                       19|                  1.0|    Medium|
++-------+----------+------------------+------+-----------+------------------+------------------+-----------------+-------------------+-----------------+---------------------+----------------------------+--------------------------+-------------------------+---------------------+----------+
+from pyspark.sql.functions import count, avg, max as spark_max, min as spark_min
+
+df.groupBy("major").agg(
+    count("*").alias("Student_Count"),
+    avg("GPA").alias("Avg_GPA"),
+    avg("avg_course_grade").alias("Avg_Grade"),
+    spark_max("avg_course_grade").alias("Max_Grade"),
+    spark_min("avg_course_grade").alias("Min_Grade")
+).orderBy("Avg_Grade", ascending=False).show()
++----------------+-------------+------------------+-----------------+---------+---------+
+|           major|Student_Count|           Avg_GPA|        Avg_Grade|Max_Grade|Min_Grade|
++----------------+-------------+------------------+-----------------+---------+---------+
+|            Arts|          404|2.9852475247524772| 80.6299504478379|    100.0|     60.0|
+|     Engineering|          384| 3.014322916666664|80.48125000794728|     99.6|     60.2|
+|Computer Science|          389| 3.049768637532131|79.71670947038116|    100.0|     60.3|
+|        Business|          368|  3.00038043478261|78.74836962119393|     99.8|     60.2|
++----------------+-------------+------------------+-----------------+---------+---------+
+df.groupBy("risk_level").count().orderBy("count", ascending=False).show()
++----------+-----+
+|risk_level|count|
++----------+-----+
+|      High|  805|
+|    Medium|  456|
+|       Low|  284|
++----------+-----+
+from pyspark.sql.functions import when
+
+df = df.withColumn("Result", when(col("avg_course_grade") >= 40, "Pass").otherwise("Fail"))
+df.select("student_id", "avg_course_grade", "Result").show(5)
++----------+----------------+------+
+|student_id|avg_course_grade|Result|
++----------+----------------+------+
+|      S176|            82.3|  Pass|
+|      S314|            89.5|  Pass|
+|      S495|            73.7|  Pass|
+|      S513|            74.9|  Pass|
+|      S603|            99.5|  Pass|
++----------+----------------+------+
+only showing top 5 rows
+df.write.csv("cleaned_student_data", header=True, mode="overwrite")
+
+
+
+
